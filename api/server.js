@@ -5,16 +5,12 @@ const path = require('path');
 const multer = require('multer');
 const XLSX = require('xlsx');
 const session = require('express-session');
-const http = require('http');
-const { Server } = require('socket.io');
 const pool = require('../db/mysql'); // MySQL pool (mysql2)
 const { sendOtpEmail } = require('../GmailMailer');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
 const PORT = process.env.PORT || 3000;
-
+const serverless = require('serverless-http');
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: {
@@ -45,11 +41,7 @@ app.use(session({
   resave: false,
   saveUninitialized: true
 }));
-app.locals.io = io;
 
-io.on('connection', socket => {
-  console.log('🔌 Socket connected:', socket.id);
-});
 
 // Create tables if not exist
 async function initTables() {
@@ -2149,4 +2141,4 @@ app.get('/api/admin/notifications/list', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+module.exports = serverless(app);
