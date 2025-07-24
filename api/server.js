@@ -2067,17 +2067,6 @@ app.delete('/api/admin/id-announcement/:id', async (req, res) => {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
-
-io.on('connection', async (socket) => {
-  try {
-    const [rows] = await pool.execute(`SELECT * FROM notifications ORDER BY createdAt DESC`);
-    socket.emit('loadNotifications', rows);
-  } catch (err) {
-    console.error('❌ Socket notification load error:', err.message);
-  }
-});
-
 // ➕ Add Notification
 app.post('/api/notifications/add', async (req, res) => {
   const { name, link, message } = req.body;
