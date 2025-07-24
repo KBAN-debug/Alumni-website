@@ -5,8 +5,8 @@ const path = require('path');
 const multer = require('multer');
 const XLSX = require('xlsx');
 const session = require('express-session');
-const pool = require('../db/mysql'); // MySQL pool (mysql2)
-const { sendOtpEmail } = require('../GmailMailer');
+const pool = require('../db/mysql.js'); // MySQL pool (mysql2)
+const { sendOtpEmail } = require('../GmailMailer.js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,8 +26,6 @@ const upload = multer({
     }
   }
 });
-
-
 
 
 
