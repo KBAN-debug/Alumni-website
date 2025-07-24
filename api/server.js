@@ -2149,4 +2149,9 @@ app.get('/api/admin/notifications/list', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+initTables().catch(err => console.error('❌ Table init error:', err));
+
+// Start the HTTP server (not just app)
+server.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
