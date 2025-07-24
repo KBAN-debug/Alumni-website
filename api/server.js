@@ -5,12 +5,15 @@ const path = require('path');
 const multer = require('multer');
 const XLSX = require('xlsx');
 const session = require('express-session');
-const pool = require('../db/mysql.js'); // MySQL pool (mysql2)
-const { sendOtpEmail } = require('../GmailMailer.js');
+const http = require('http');
+const { Server } = require('socket.io');
+const pool = require('./db/mysql'); // MySQL pool (mysql2)
+const { sendOtpEmail } = require('./GmailMailer');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 const PORT = process.env.PORT || 3000;
-const serverless = require('serverless-http');
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -30,6 +33,8 @@ const upload = multer({
 
 
 
+
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -40,10 +45,11 @@ app.use(session({
   resave: false,
   saveUninitialized: true
 }));
+app.locals.io = io;
 
-async function sendRealtimeNotification(data) {
-  console.log('📢 Simulated real-time notification:', data);
-}
+io.on('connection', socket => {
+  console.log('🔌 Socket connected:', socket.id);
+});
 
 // Create tables if not exist
 async function initTables() {
@@ -200,16 +206,6 @@ async function initTables() {
   for (const [name, ddl] of Object.entries(sql)) {
     await pool.query(ddl);
     console.log(`✅ Initialized table: ${name}`);
-  }
-}
-
-
-let initialized = false;
-
-async function maybeInitTables() {
-  if (!initialized) {
-    await initTables();
-    initialized = true;
   }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -605,7 +601,7 @@ app.post('/api/registration/add', async (req, res) => {
     connection.release();
 
     // 6️⃣ Emit to admin inbox via socket.io - use ISO string for frontend
-    await sendRealtimeNotification({
+    io.emit('newNotification', {
       ...notif,
       createdAt: now.toISOString() // Frontend can handle ISO format
     });
@@ -1572,13 +1568,14 @@ app.post('/api/requests/add', idUpload.single('idImage'), async (req, res) => {
     connection.release();
 
     // Send ISO format to frontend for socket.io
-  await sendRealtimeNotification({
-    id: notifResult.insertId,
-    name: 'ID Request Submitted',
-    message,
-    link: 'admin-id.html',
-    createdAt: new Date().toISOString()
-  });
+    io.emit('newNotification', {
+      id: notifResult.insertId,
+      name: 'ID Request Submitted',
+      message,
+      link: 'admin-id.html',
+      createdAt: new Date().toISOString() // ISO format for frontend
+    });
+
     res.json({ success: true, id: result.insertId, message: 'Request with ID Image saved successfully' });
 
   } catch (err) {
@@ -2077,6 +2074,17 @@ app.delete('/api/admin/id-announcement/:id', async (req, res) => {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+
+
+io.on('connection', async (socket) => {
+  try {
+    const [rows] = await pool.execute(`SELECT * FROM notifications ORDER BY createdAt DESC`);
+    socket.emit('loadNotifications', rows);
+  } catch (err) {
+    console.error('❌ Socket notification load error:', err.message);
+  }
+});
+
 // ➕ Add Notification
 app.post('/api/notifications/add', async (req, res) => {
   const { name, link, message } = req.body;
@@ -2141,4 +2149,4 @@ app.get('/api/admin/notifications/list', async (req, res) => {
   }
 });
 
-module.exports = serverless(app);
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
