@@ -11,6 +11,7 @@ const { sendOtpEmail } = require('../GmailMailer.js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const serverless = require('serverless-http');
+
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: {
@@ -39,6 +40,10 @@ app.use(session({
   resave: false,
   saveUninitialized: true
 }));
+
+async function sendRealtimeNotification(data) {
+  console.log('📢 Simulated real-time notification:', data);
+}
 
 // Create tables if not exist
 async function initTables() {
@@ -590,7 +595,7 @@ app.post('/api/registration/add', async (req, res) => {
     connection.release();
 
     // 6️⃣ Emit to admin inbox via socket.io - use ISO string for frontend
-    io.emit('newNotification', {
+    await sendRealtimeNotification({
       ...notif,
       createdAt: now.toISOString() // Frontend can handle ISO format
     });
@@ -1557,14 +1562,13 @@ app.post('/api/requests/add', idUpload.single('idImage'), async (req, res) => {
     connection.release();
 
     // Send ISO format to frontend for socket.io
-    io.emit('newNotification', {
-      id: notifResult.insertId,
-      name: 'ID Request Submitted',
-      message,
-      link: 'admin-id.html',
-      createdAt: new Date().toISOString() // ISO format for frontend
-    });
-
+  await sendRealtimeNotification({
+    id: notifResult.insertId,
+    name: 'ID Request Submitted',
+    message,
+    link: 'admin-id.html',
+    createdAt: new Date().toISOString()
+  });
     res.json({ success: true, id: result.insertId, message: 'Request with ID Image saved successfully' });
 
   } catch (err) {
