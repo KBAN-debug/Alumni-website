@@ -38,13 +38,18 @@ const upload = multer({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/uploads', express.static('uploads'));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'alumni2025',
   resave: false,
   saveUninitialized: true
 }));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'homepage.html'));
+});
+
 app.locals.io = io;
 
 io.on('connection', socket => {
