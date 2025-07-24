@@ -11,7 +11,6 @@ const { sendOtpEmail } = require('../GmailMailer.js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const serverless = require('serverless-http');
-const io = new Server(server);
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: {
@@ -41,11 +40,6 @@ app.use(session({
   saveUninitialized: true
 }));
 
-app.locals.io = io;
-
-io.on('connection', socket => {
-  console.log('🔌 Socket connected:', socket.id);
-});
 // Create tables if not exist
 async function initTables() {
   const sql = {
